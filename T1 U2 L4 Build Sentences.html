@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排句子 · Sentence Order</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --bg1:#1a1333; --bg2:#0f0a1f; --glow:rgba(139,92,246,0.22);
+    --card:#241a3d; --muted:#a99bc7; --accent:#a78bfa;
+    --green:#34d399; --amber:#fbbf24; --red:#f87171;
+  }
+  body{
+    font-family:"Nunito","Microsoft YaHei","PingFang SC",sans-serif;
+    min-height:100vh; color:#f0ecfa; overflow-x:hidden;
+    background:
+      radial-gradient(circle at 15% 12%, var(--glow), transparent 50%),
+      radial-gradient(circle at 85% 88%, var(--glow), transparent 50%),
+      linear-gradient(150deg, var(--bg1), var(--bg2));
+  }
+  #setup{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .setup-card{ width:100%; max-width:660px; background:rgba(20,14,35,0.8); border:1px solid rgba(167,139,250,0.2); border-radius:24px; padding:36px; }
+  .badge{ display:inline-block; background:var(--accent); color:#1a1333; font-size:13px; font-weight:700; padding:5px 14px; border-radius:20px; letter-spacing:1px; }
+  .setup-card h1{ font-size:28px; margin:14px 0 4px; font-weight:800; }
+  .setup-card h1 .s{ font-size:18px; color:var(--muted); font-weight:600; }
+  .field-label{ font-size:13px; color:var(--muted); margin:20px 0 8px; font-weight:700; }
+  .ipt{ width:100%; background:rgba(15,10,31,0.8); border:1.5px solid rgba(167,139,250,0.28); border-radius:12px; color:#fff; font-family:inherit; font-size:16px; font-weight:600; padding:12px 14px; outline:none; }
+  .ipt:focus{ border-color:var(--accent); }
+  .btn{ font-family:inherit; font-weight:700; border:none; border-radius:14px; cursor:pointer; transition:filter .15s, transform .1s; }
+  .btn:active{ transform:translateY(1px); }
+  .btn-start{ width:100%; margin-top:24px; background:var(--green); color:#04140f; font-size:18px; padding:15px; }
+  .btn-start:hover{ filter:brightness(1.08); }
+  .hint{ color:var(--muted); font-size:12px; margin-top:14px; line-height:1.6; }
+  #game{ display:none; min-height:100vh; flex-direction:column; padding:18px 28px; }
+  #game.show{ display:flex; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .topbar h2{ font-size:22px; font-weight:700; line-height:1.3; }
+  .topbar h2 .en{ display:block; font-size:12px; color:var(--muted); font-weight:500; margin-top:2px; }
+  .stats{ display:flex; gap:20px; align-items:center; }
+  .stat{ text-align:center; }
+  .stat .num{ font-size:28px; font-weight:800; color:var(--green); line-height:1; }
+  .stat .lbl{ font-size:10px; color:var(--muted); letter-spacing:1px; }
+  .btn-restart{ background:rgba(167,139,250,0.18); color:#e8e0fb; font-size:13px; padding:9px 16px; }
+  .setup-timer{ display:flex; align-items:center; gap:8px; margin-top:22px; font-size:15px; color:#f0ecfa; font-weight:600; cursor:pointer; user-select:none; padding:12px 16px; background:rgba(167,139,250,0.1); border:1.5px solid rgba(167,139,250,0.3); border-radius:12px; }
+  .setup-timer input{ width:20px; height:20px; accent-color:var(--accent); cursor:pointer; }
+  .py-toggle{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none; padding:7px 12px; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); border-radius:10px; }
+  .py-toggle input{ width:16px; height:16px; accent-color:var(--accent); cursor:pointer; }
+  body.no-py .answer-slot .py, body.no-py .word .py{ visibility:hidden; }
+  .play-area{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:36px; padding-top:30px; }
+  .round-hint{ font-size:17px; color:var(--muted); font-weight:600; }
+  .answer{ display:flex; gap:16px; align-items:center; min-height:130px; flex-wrap:wrap; justify-content:center; padding:0 16px; }
+  .answer-slot{
+    min-width:150px; height:120px; border-radius:18px; border:2.5px dashed rgba(167,139,250,0.4);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    background:rgba(36,26,61,0.4); transition:all .2s; padding:0 18px; color:var(--muted);
+  }
+  .answer-slot .py{ font-size:18px; font-family:"Nunito","Segoe UI",Arial,sans-serif; opacity:.85; min-height:22px; }
+  .answer-slot .cn{ font-size:42px; font-weight:700; font-family:"KaiTi","STKaiti","DFKai-SB","FangSong","Microsoft YaHei",serif; }
+  .answer-slot.empty .cn{ color:var(--muted); }
+  .answer-slot.filled{ border-style:solid; border-color:var(--green); background:rgba(52,211,153,0.16); color:#fff; }
+  .answer-slot.over{ border-color:var(--amber); background:rgba(251,191,36,0.16); }
+  .pool{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; max-width:900px; min-height:120px; }
+  .word{
+    min-width:150px; padding:18px 30px; border-radius:18px; background:var(--card); border:2.5px solid var(--accent);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    cursor:grab; user-select:none; transition:transform .1s, opacity .2s;
+  }
+  .word .py{ font-size:18px; font-family:"Nunito","Segoe UI",Arial,sans-serif; color:var(--muted); }
+  .word .cn{ font-size:42px; font-weight:700; color:#fff; font-family:"KaiTi","STKaiti","DFKai-SB","FangSong","Microsoft YaHei",serif; }
+  .word:active{ cursor:grabbing; transform:scale(1.05); }
+  .word.used{ opacity:0; pointer-events:none; }
+  .word.wrong{ border-color:var(--red); background:rgba(248,113,113,0.22); animation:shake .35s; }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-7px);} 75%{transform:translateX(7px);} }
+  #win{ display:none; position:fixed; inset:0; background:rgba(15,10,31,0.94); align-items:center; justify-content:center; flex-direction:column; gap:18px; z-index:20; padding:20px; }
+  #win.show{ display:flex; }
+  #win .emoji{ font-size:88px; animation:pop .5s ease-out; }
+  @keyframes pop{ 0%{transform:scale(0);} 70%{transform:scale(1.2);} 100%{transform:scale(1);} }
+  #win .big{ font-size:50px; font-weight:800; }
+  #win .cn{ font-size:24px; color:#cbd5e1; font-weight:700; }
+  #win .stars{ font-size:38px; letter-spacing:4px; }
+  #win .btn-again{ background:var(--green); color:#04140f; font-size:18px; padding:14px 40px; margin-top:4px; }
+</style>
+</head>
+<body>
+  <div id="setup">
+    <div class="setup-card">
+      <span class="badge">数字化游戏 · AI Game</span>
+      <h1>Put Words in Order <span class="s">排句子</span></h1>
+      <div class="field-label">SENTENCE 句子(按正确语序,格式:汉字 拼音,词之间逗号分隔)</div>
+      <input class="ipt" id="wordsInput" value="我 wǒ, 爱 ài, 我的 wǒ de, 爸爸 bàba">
+      <div class="field-label">SWAP LAST WORD 替换最后一个词练多句(汉字 拼音,逗号分隔)</div>
+      <input class="ipt" id="swapInput" value="爸爸 bàba, 妈妈 māma, 哥哥 gēge, 姐姐 jiějie">
+      <label class="setup-timer"><input type="checkbox" id="timerChk"> ⏱ 开启计时(分组比赛用) Enable Timer</label>
+      <button class="btn btn-start" id="startBtn">Start Game 开始 ▶</button>
+      
+    </div>
+  </div>
+  <div id="game">
+    <div class="topbar">
+      <h2>Put the words in order <span class="en">把词按正确的顺序排成句子</span></h2>
+      <div class="stats">
+        <label class="py-toggle"><input type="checkbox" id="pyChk" checked> 拼音 Pinyin</label>
+        <div class="stat" id="timerStat" style="display:none;"><div class="num" id="timeN">0</div><div class="lbl">秒 SEC</div></div>
+        <div class="stat"><div class="num" id="doneN">0</div><div class="lbl">DONE 完成</div></div>
+        <button class="btn btn-restart" id="restartBtn">↺ Reset 重设</button>
+      </div>
+    </div>
+    <div class="play-area">
+      <div class="round-hint" id="roundHint"></div>
+      <div class="answer" id="answer"></div>
+      <div class="pool" id="pool"></div>
+    </div>
+  </div>
+  <div id="win">
+    <div class="emoji" id="winEmoji">🏆</div>
+    <div class="big" id="winBig">Excellent!</div>
+    <div class="cn" id="winCn">太棒了!</div>
+    <div class="stars" id="winStars"></div>
+    <div class="cn" id="winTime" style="display:none;font-size:18px;"></div>
+    <button class="btn btn-again" id="againBtn">Play Again 再玩一次 ↺</button>
+  </div>
+<script>
+// ====== 本课配置(每课只改这里)======
+// 方案B:每行一个完整句,各句独立打乱重排(用于教「在…旁边 / 离…远近」)
+const SENTENCES=[
+  [["爸爸","bàba"],["常常","chángcháng"],["开车","kāichē"],["去","qù"],["商场","shāngchǎng"]],
+  [["我家","wǒ jiā"],["离","lí"],["学校","xuéxiào"],["不","bù"],["远","yuǎn"]],
+  [["我家","wǒ jiā"],["离","lí"],["学校","xuéxiào"],["很","hěn"],["近","jìn"]],
+  [["商场","shāngchǎng"],["离","lí"],["我家","wǒ jiā"],["很","hěn"],["远","yuǎn"]],
+];
+// 以下 BASE/SWAP 仅设置页手动模式用;有 SENTENCES 时专属版优先用 SENTENCES
+const BASE_WORDS=[["我家","wǒ jiā"],["离","lí"],["学校","xuéxiào"],["很","hěn"],["近","jìn"]];
+const SWAP_WORDS=[["近","jìn"],["远","yuǎn"]];
+const THEME="purple"; // purple/teal/blue/rose
+const AUTO_START=false;
+// ====================================
+const THEMES={
+  purple:{bg1:"#1a1333",bg2:"#0f0a1f",glow:"rgba(139,92,246,0.22)",card:"#241a3d",muted:"#a99bc7",accent:"#a78bfa"},
+  teal:  {bg1:"#0c2b2b",bg2:"#071a1a",glow:"rgba(20,184,166,0.22)",card:"#11403c",muted:"#8fc9c2",accent:"#2dd4bf"},
+  blue:  {bg1:"#0f2547",bg2:"#091633",glow:"rgba(59,130,246,0.22)",card:"#163057",muted:"#93b4e0",accent:"#60a5fa"},
+  rose:  {bg1:"#3a1530",bg2:"#240d20",glow:"rgba(236,72,153,0.22)",card:"#4a1d3e",muted:"#d6a3c4",accent:"#f472b6"},
+};
+function applyTheme(name){
+  const t=THEMES[name]||THEMES.purple; const r=document.documentElement.style;
+  r.setProperty("--bg1",t.bg1);r.setProperty("--bg2",t.bg2);r.setProperty("--glow",t.glow);
+  r.setProperty("--card",t.card);r.setProperty("--muted",t.muted);r.setProperty("--accent",t.accent);
+}
+applyTheme(THEME);
+const $=id=>document.getElementById(id);
+let ACTIVE_SENTS=null;
+let state={base:[],swaps:[],roundIdx:0,target:[],placed:0,tries:0,timed:false,seconds:0,timerId:null};
+function parseWords(str){
+  return str.split(/[,，]/).map(s=>s.trim()).filter(Boolean).map(item=>{
+    const sp=item.split(/\s+/); return [sp[0], sp.slice(1).join(" ")];
+  });
+}
+$("pyChk").onchange=()=>{ document.body.classList.toggle("no-py", !$("pyChk").checked); };
+$("startBtn").onclick=()=>{
+  const rowsBox=document.getElementById("sentRows");
+  if(rowsBox){ // 句子模式:一行一句,可编辑可增加
+    const sents=[];
+    [...rowsBox.querySelectorAll("input")].forEach(inp=>{
+      const ws=parseWords(inp.value);
+      if(ws.length>=2) sents.push(ws);
+    });
+    if(!sents.length){ alert("请至少填一句(每句至少 2 个词,格式:汉字 拼音,逗号分隔)"); return; }
+    ACTIVE_SENTS=sents;
+    startGame(BASE_WORDS, SWAP_WORDS, true); return;
+  }
+  const base=parseWords($("wordsInput").value);
+  const swaps=parseWords($("swapInput").value);
+  if(base.length<2){ alert("句子至少要有 2 个词"); return; }
+  startGame(base, swaps.length?swaps:[base[base.length-1]]);
+};
+function startGame(base,swaps,useSents){
+  state.base=base; state.swaps=swaps; state.roundIdx=0; state.tries=0; state.useSents=!!useSents;
+  state.timed=$("timerChk").checked; state.seconds=0;
+  if(state.timerId){ clearInterval(state.timerId); state.timerId=null; }
+  document.body.classList.toggle("no-py", !$("pyChk").checked);
+  $("setup").style.display="none"; $("game").classList.add("show"); $("win").classList.remove("show");
+  $("doneN").textContent="0";
+  if(state.timed){
+    $("timerStat").style.display="block"; $("timeN").textContent="0";
+    state.timerId=setInterval(()=>{ state.seconds++; $("timeN").textContent=state.seconds; },1000);
+  } else { $("timerStat").style.display="none"; }
+  newRound();
+}
+function newRound(){
+  const useSents = (ACTIVE_SENTS && state.useSents);
+  const total = useSents ? ACTIVE_SENTS.length : state.swaps.length;
+  if(state.roundIdx>=total){ win(); return; }
+  let t;
+  if(useSents){ t=ACTIVE_SENTS[state.roundIdx].map(x=>[...x]); }
+  else{ t=state.base.map(x=>[...x]); t[t.length-1]=[...state.swaps[state.roundIdx]]; }
+  state.target=t; state.placed=0;
+  $("roundHint").textContent=`第 ${state.roundIdx+1} / ${total} 句`;
+  renderAnswer(); renderPool();
+}
+function renderAnswer(){
+  const a=$("answer"); a.innerHTML="";
+  state.target.forEach((w,i)=>{
+    const el=document.createElement("div");
+    const filled=i<state.placed;
+    el.className="answer-slot"+(filled?" filled":(i===state.placed?" empty":""));
+    if(filled){ el.innerHTML=`<div class="py">${w[1]}</div><div class="cn">${w[0]}</div>`; }
+    else if(i===state.placed){
+      el.innerHTML=`<div class="py"></div><div class="cn">?</div>`; el.id="nextSlot";
+      el.ondragover=e=>{e.preventDefault();el.classList.add("over");};
+      el.ondragleave=()=>el.classList.remove("over");
+      el.ondrop=e=>{e.preventDefault();el.classList.remove("over");tryPlace(e.dataTransfer.getData("text"));};
+    } else { el.innerHTML=`<div class="py"></div><div class="cn"></div>`; }
+    a.appendChild(el);
+  });
+}
+function renderPool(){
+  const pool=$("pool"); pool.innerHTML="";
+  const shuffled=[...state.target].sort(()=>Math.random()-0.5);
+  shuffled.forEach(([cn,py])=>{
+    const el=document.createElement("div");
+    el.className="word"; el.dataset.w=cn;
+    el.innerHTML=`<div class="py">${py}</div><div class="cn">${cn}</div>`;
+    el.draggable=true;
+    el.ondragstart=e=>e.dataTransfer.setData("text",cn);
+    el.onclick=()=>tryPlace(cn);
+    pool.appendChild(el);
+  });
+}
+function tryPlace(cn){
+  state.tries++;
+  const needWord=state.target[state.placed][0];
+  if(cn===needWord){
+    state.placed++;
+    const hit=[...$("pool").children].find(c=>c.dataset.w===cn && !c.classList.contains("used"));
+    if(hit) hit.classList.add("used");
+    beep(true); renderAnswer();
+    if(state.placed===state.target.length){
+      state.roundIdx++; $("doneN").textContent=state.roundIdx; setTimeout(newRound,750);
+    }
+  }else{
+    const hit=[...$("pool").children].find(c=>c.dataset.w===cn && !c.classList.contains("used"));
+    if(hit){ hit.classList.add("wrong"); setTimeout(()=>hit.classList.remove("wrong"),400); }
+    beep(false);
+  }
+}
+function win(){
+  if(state.timerId){ clearInterval(state.timerId); state.timerId=null; }
+  const rounds=(ACTIVE_SENTS && state.useSents)?ACTIVE_SENTS.length:state.swaps.length;
+  const avgLen=(ACTIVE_SENTS && state.useSents)?(ACTIVE_SENTS.reduce((a,x)=>a+x.length,0)/ACTIVE_SENTS.length):state.base.length;
+  const ideal=rounds*avgLen;
+  const acc=ideal/Math.max(state.tries,1);
+  let emoji,big,cn,stars;
+  if(acc>=0.9){ emoji="🏆";big="Excellent!";cn="太棒了!";stars="⭐⭐⭐⭐⭐"; }
+  else if(acc>=0.6){ emoji="👏";big="Well Done!";cn="做得好!";stars="⭐⭐⭐⭐"; }
+  else { emoji="💪";big="Keep Going!";cn="继续加油!";stars="⭐⭐⭐"; }
+  $("winEmoji").textContent=emoji;$("winBig").textContent=big;$("winCn").textContent=cn;$("winStars").textContent=stars;
+  if(state.timed){ $("winTime").style.display="block"; $("winTime").textContent=`⏱ 用时 ${state.seconds} 秒 · ${state.seconds} seconds`; }
+  else { $("winTime").style.display="none"; }
+  $("win").classList.add("show"); playResult(acc>=0.9?"cheer":"good");
+}
+$("restartBtn").onclick=()=>{ $("game").classList.remove("show"); $("setup").style.display="flex"; $("win").classList.remove("show"); };
+$("againBtn").onclick=()=>startGame(state.base,state.swaps);
+let actx=null;
+function beep(ok){
+  try{ actx=actx||new(window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain(); o.connect(g);g.connect(actx.destination);
+    o.frequency.value=ok?880:220;o.type=ok?"sine":"square";
+    g.gain.setValueAtTime(0.0001,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(ok?0.3:0.2,actx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+(ok?0.3:0.2));
+    o.start();o.stop(actx.currentTime+0.32);
+  }catch(e){}
+}
+function playResult(kind){
+  try{ actx=actx||new(window.AudioContext||window.webkitAudioContext)();
+    const notes=kind==="cheer"?[523,659,784,1047,1319]:[523,784];
+    notes.forEach((f,i)=>{ const o=actx.createOscillator(),g=actx.createGain(); o.connect(g);g.connect(actx.destination);
+      o.type="sine";o.frequency.value=f; const t=actx.currentTime+i*0.12;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+      o.start(t);o.stop(t+0.32); });
+  }catch(e){}
+}
+if(AUTO_START){ if(typeof SENTENCES!=="undefined")ACTIVE_SENTS=SENTENCES; startGame(BASE_WORDS, SWAP_WORDS, typeof SENTENCES!=="undefined"); }
+else if(typeof SENTENCES!=="undefined"){
+  // 本课专属:一行一句(已预填),老师可直接改、可加句,勾计时后点开始
+  const labels=document.querySelectorAll("#setup .field-label");
+  if(labels[0]) labels[0].innerHTML=`老师可以按照规定的格式增加练习的句子。`;
+  if(labels[1]) labels[1].style.display="none";
+  $("swapInput").style.display="none";
+  const wi=$("wordsInput"); wi.style.display="none";
+  const box=document.createElement("div"); box.id="sentRows";
+  SENTENCES.forEach(sn=>{
+    const inp=document.createElement("input");
+    inp.className="ipt"; inp.style.marginBottom="10px";
+    inp.value=sn.map(w=>w.join(" ")).join(", ");
+    box.appendChild(inp);
+  });
+  wi.parentNode.insertBefore(box, wi);
+  const addBtn=document.createElement("button");
+  addBtn.className="btn"; addBtn.textContent="+ 加一句 Add sentence";
+  addBtn.style.cssText="background:rgba(148,163,184,0.15);color:#cbd5e1;font-size:14px;padding:10px 18px;margin-bottom:14px;";
+  addBtn.onclick=()=>{
+    const inp=document.createElement("input");
+    inp.className="ipt"; inp.style.marginBottom="10px";
+    inp.placeholder="如: 我 wǒ, 会 huì, 跳舞 tiàowǔ";
+    box.appendChild(inp); inp.focus();
+  };
+  wi.parentNode.insertBefore(addBtn, wi);
+}
+else {
+  $("wordsInput").value=BASE_WORDS.map(w=>w.join(" ")).join(", ");
+  $("swapInput").value=SWAP_WORDS.map(w=>w.join(" ")).join(", ");
+}
+</script>
+</body>
+</html>
